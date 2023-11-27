@@ -51,7 +51,7 @@
 		<json-io.version>4.9.0</json-io.version>
 
 		<!-- snake yaml -->
-		<snake-yaml.version>1.26</snake-yaml.version>
+		<snake-yaml.version>2.2</snake-yaml.version>
 
 		<!-- joda time -->
 		<joda-time.version>2.10.6</joda-time.version>
@@ -79,6 +79,11 @@
 	</properties>
 
 	<dependencies>
+		<dependency>
+			<groupId>org.yaml</groupId>
+			<artifactId>snakeyaml</artifactId>
+			<version>${snake-yaml.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-core</artifactId>
@@ -230,7 +235,7 @@
 						</goals>
 						<configuration>
 							<shadedArtifactAttached>true</shadedArtifactAttached>
-							<shadedClassifierName>executable</shadedClassifierName>
+							<shadedClassifierName>shaded</shadedClassifierName>
 							<transformers>
 								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
 									<manifestEntries>
@@ -249,37 +254,6 @@
 								</filter>
 							</filters>
 						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.skife.maven</groupId>
-				<artifactId>really-executable-jar-maven-plugin</artifactId>
-				<version>1.0.5</version>
-				<configuration>
-					<flags>-Xmx1G</flags>
-					<classifier>executable</classifier>
-				</configuration>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>really-executable-jar</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-gpg-plugin</artifactId>
-				<version>1.4</version>
-				<executions>
-					<execution>
-						<id>sign-artifacts</id>
-						<phase>verify</phase>
-						<goals>
-							<goal>sign</goal>
-						</goals>
 					</execution>
 				</executions>
 			</plugin>
