@@ -76,9 +76,33 @@
 
 		<!-- jackson -->
 		<jackson.version>2.12.0</jackson.version>
+
+		<!-- chango client -->
+		<chango-client.version>2.0.1</chango-client.version>
+
+		<!-- rocksdb -->
+		<rocksdb.version>8.8.1</rocksdb.version>
+
+		<!-- kryo -->
+		<kryo.version>5.3.0</kryo.version>
 	</properties>
 
 	<dependencies>
+		<dependency>
+			<groupId>com.esotericsoftware</groupId>
+			<artifactId>kryo</artifactId>
+			<version>${kryo.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.rocksdb</groupId>
+			<artifactId>rocksdbjni</artifactId>
+			<version>${rocksdb.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>co.cloudcheflabs.chango</groupId>
+			<artifactId>chango-client</artifactId>
+			<version>${chango-client.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>org.yaml</groupId>
 			<artifactId>snakeyaml</artifactId>

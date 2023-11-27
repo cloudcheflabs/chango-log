@@ -1,9 +1,7 @@
 package co.cloudcheflabs.chango.log.util;
 
 import org.apache.commons.io.IOUtils;
-import org.springframework.beans.factory.config.YamlPropertiesFactoryBean;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.FileSystemResource;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;

@@ -1,3 +1,2 @@
-test:
-  name: kidong
-  age: 21
+rocksdb:
+  directory: /tmp/rocksdb

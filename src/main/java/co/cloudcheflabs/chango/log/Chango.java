@@ -1,7 +1,8 @@
 package co.cloudcheflabs.chango.log;
 
-import co.cloudcheflabs.chango.log.component.TestComp;
 import co.cloudcheflabs.chango.log.config.ConfigurationLoader;
+import co.cloudcheflabs.chango.log.dao.rocksdb.RocksdbLogFileDao;
+import co.cloudcheflabs.chango.log.service.LogFileServiceImpl;
 import co.cloudcheflabs.chango.log.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +28,8 @@ public class Chango {
 
         ApplicationContext applicationContext = new AnnotationConfigApplicationContext(
                 ConfigurationLoader.class,
-                TestComp.class
+                RocksdbLogFileDao.class,
+                LogFileServiceImpl.class
         );
 
         try {
