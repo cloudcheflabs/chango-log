@@ -4,7 +4,6 @@ import co.cloudcheflabs.chango.log.api.dao.KeyValueDao;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.slf4j.Logger;
@@ -14,9 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.util.Properties;
 
 public abstract class AbstractKeyValueDao<K, V> implements KeyValueDao<K, V>, InitializingBean {
@@ -26,36 +22,14 @@ public abstract class AbstractKeyValueDao<K, V> implements KeyValueDao<K, V>, In
     private Kryo kryo = new Kryo();
 
     @Autowired
-    private Properties configuration;
-
-    private String NAME = "log-file-db";
-
-    private File dbDir;
+    protected Properties configuration;
     protected RocksDB rocksDB;
+
+    @Override
+    public abstract void afterPropertiesSet() throws Exception;
 
     public AbstractKeyValueDao(Class<V> clazz) {
         kryo.register(clazz);
-    }
-
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        String rocksDbDir = configuration.getProperty("rocksdb.directory");
-
-        RocksDB.loadLibrary();
-        final Options options = new Options();
-        options.setCreateIfMissing(true);
-        dbDir = new File(rocksDbDir, NAME);
-        try {
-            if(!dbDir.exists()) {
-                Files.createDirectories(dbDir.getParentFile().toPath());
-                Files.createDirectories(dbDir.getAbsoluteFile().toPath());
-            }
-            rocksDB = RocksDB.open(options, dbDir.getAbsolutePath());
-        } catch(IOException | RocksDBException ex) {
-            LOG.error("Error initializing RocksDB, check configurations and permissions, exception: {}, message: {}, stackTrace: {}",
-                    ex.getCause(), ex.getMessage(), ex.getStackTrace());
-        }
-        LOG.info("RocksDB initialized and ready to use");
     }
 
     @Override

@@ -49,12 +49,28 @@ public class LogFileServiceTestRunner {
                 lastModified,
                 10
         );
-
         logFileService.save(filePath, logFile);
 
         LogFile ret = logFileService.find(filePath, LogFile.class);
         Assert.assertTrue(ret.getFileName().equals(fileName));
         Assert.assertTrue(ret.getReadLineCount() == 10);
+
+        logFileService.delete(filePath);
+
+        fileName = "test.log";
+        filePath = "/log-dir/" + fileName;
+        logFile = new LogFile(
+                fileName,
+                filePath,
+                lastModified,
+                20
+        );
+        logFileService.save(filePath, logFile);
+
+        ret = logFileService.find(filePath, LogFile.class);
+        Assert.assertTrue(ret.getFileName().equals(fileName));
+        Assert.assertTrue(ret.getFilePath().equals(filePath));
+        Assert.assertTrue(ret.getReadLineCount() == 20);
 
         logFileService.delete(filePath);
 

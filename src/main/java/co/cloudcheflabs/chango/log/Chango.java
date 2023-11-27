@@ -32,10 +32,12 @@ public class Chango {
                 LogFileServiceImpl.class
         );
 
-        try {
-            Thread.sleep(Long.MAX_VALUE);
-        } catch (Exception e) {
-            LOG.error(e.getMessage());
+        while (true) {
+            try {
+                Thread.sleep(Long.MAX_VALUE);
+            } catch (Exception e) {
+                LOG.error(e.getMessage());
+            }
         }
     }
 }
