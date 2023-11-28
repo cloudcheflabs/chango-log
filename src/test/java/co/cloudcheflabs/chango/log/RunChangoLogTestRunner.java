@@ -10,7 +10,7 @@ public class RunChangoLogTestRunner {
     @Test
     public void runChangoLog() throws Exception {
 
-        String confPath = System.getProperty("confPath", "/Users/mykidong/project/chango-log/src/main/resources/configuration.yml");
+        String confPath = System.getProperty("confPath", "/Users/mykidong/project/chango-log/src/test/resources/configuration-test.yml");
 
         List<String> args = Arrays.asList(confPath);
 

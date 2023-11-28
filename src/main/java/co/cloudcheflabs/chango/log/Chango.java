@@ -1,5 +1,6 @@
 package co.cloudcheflabs.chango.log;
 
+import co.cloudcheflabs.chango.log.component.LogReader;
 import co.cloudcheflabs.chango.log.config.ConfigurationLoader;
 import co.cloudcheflabs.chango.log.dao.rocksdb.RocksdbLogFileDao;
 import co.cloudcheflabs.chango.log.service.LogFileServiceImpl;
@@ -7,6 +8,7 @@ import co.cloudcheflabs.chango.log.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 public class Chango {
@@ -26,18 +28,15 @@ public class Chango {
         LOG.info("env {}: {}", ENV_CHANGO_LOG_CONFIGURATION_PATH,
                 StringUtils.getEnv(ENV_CHANGO_LOG_CONFIGURATION_PATH));
 
-        ApplicationContext applicationContext = new AnnotationConfigApplicationContext(
+        ConfigurableApplicationContext applicationContext = new AnnotationConfigApplicationContext(
                 ConfigurationLoader.class,
                 RocksdbLogFileDao.class,
-                LogFileServiceImpl.class
+                LogFileServiceImpl.class,
+                LogReader.class
         );
 
-        while (true) {
-            try {
-                Thread.sleep(Long.MAX_VALUE);
-            } catch (Exception e) {
-                LOG.error(e.getMessage());
-            }
-        }
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            applicationContext.close();
+        }));
     }
 }

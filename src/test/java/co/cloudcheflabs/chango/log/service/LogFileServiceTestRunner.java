@@ -26,7 +26,7 @@ public class LogFileServiceTestRunner {
 
     @Test
     public void save() throws Exception {
-        String confPath = System.getProperty("confPath", "/Users/mykidong/project/chango-log/src/main/resources/configuration.yml");
+        String confPath = System.getProperty("confPath", "/Users/mykidong/project/chango-log/src/test/resources/configuration-test.yml");
 
         StringUtils.setEnv(ENV_CHANGO_LOG_CONFIGURATION_PATH, confPath);
         LOG.info("env {}: {}", ENV_CHANGO_LOG_CONFIGURATION_PATH,
