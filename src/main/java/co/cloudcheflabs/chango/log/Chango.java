@@ -7,7 +7,6 @@ import co.cloudcheflabs.chango.log.service.LogFileServiceImpl;
 import co.cloudcheflabs.chango.log.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
