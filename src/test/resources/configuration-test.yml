@@ -9,6 +9,8 @@ chango:
 logs:
   - path: /Users/mykidong/temp-logs
     file: admin*.log
+  - path: /Users/mykidong/temp-logs2
+    file: admin*.log
 
 task:
   log:
