@@ -137,6 +137,14 @@ public class LogReader implements InitializingBean {
         readLogThread.start();
     }
 
+    public static void pause(long pause) {
+        try {
+            Thread.sleep(pause);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private static class ReadLogRunnable implements Runnable {
 
         private LinkedBlockingQueue<String> queue;
@@ -253,9 +261,12 @@ public class LogReader implements InitializingBean {
                     filteredFiles.addAll(files);
                 } else {
                     // filter files with file pattern.
-
-                    String[] patternToken = filePattern.split("\\*");
-                    filePattern = "\\b" + patternToken[0] + "\\b" + ".*" + "\\b" + patternToken[1] + "\\b";
+                    if(filePattern.indexOf("*") != -1) {
+                        String[] patternToken = filePattern.split("\\*");
+                        filePattern = "\\b" + patternToken[0] + "\\b" + ".*" + "\\b" + patternToken[1] + "\\b";
+                    } else {
+                        filePattern = "\\b" + filePattern + "\\b";
+                    }
 
                     for(File f : files) {
                         String fileName = f.getName();
@@ -417,14 +428,6 @@ public class LogReader implements InitializingBean {
             }
 
             return files;
-        }
-
-        private void pause(long pause) {
-            try {
-                Thread.sleep(pause);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
         }
     }
 

@@ -23,7 +23,7 @@ public class RunChangoLogTestRunner {
         String confPath = System.getProperty("confPath", "/Users/mykidong/project/chango-log/src/test/resources/configuration-test.yml");
 
         // remove rocksdb directory.
-        //removeRocksDBDirectory(confPath);
+        removeRocksDBDirectory(confPath);
 
         List<String> args = Arrays.asList(confPath);
 
