@@ -366,7 +366,6 @@ public class LogReader implements InitializingBean {
                         String hostAddress = local.getHostAddress();
 
                         String log = strLine;
-                        LOG.info("log: {}", log);
 
                         // send logs.
 
