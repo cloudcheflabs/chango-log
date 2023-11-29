@@ -1,0 +1,22 @@
+chango:
+  token: any-chango-credential
+  dataApiUrl: http://any-data-api-endpoint
+  schema: log_db
+  table: logs
+  batchSize: 10000
+  interval: 1000
+
+logs:
+  - path: /log-dir-1
+    file: rest*.log
+  - path: /log-dir-2
+    file: admin*.log
+  - path: /log-dir-3
+
+task:
+  log:
+    interval: 20000
+    threads: 3
+
+rocksdb:
+  directory: /tmp/rocksdb

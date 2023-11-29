@@ -1,0 +1,19 @@
+chango:
+  token: eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJsb2dzZmI4NDEyMmUwZjhmNDYxYzlkZTdlZmMzMGQ0ZTFhYzciLCJleHAiOjE3MDM5ODA3OTksImlhdCI6MTcwMTI1ODQyMn0.lQwgfXm9xMw3K3AqeVB1wUrgaeHKfXpnJA_dUxblDSM6hLMNNbyFXh2Jp4IZgxqCFzn6oUt2cjQA4YAn5I27sA
+  dataApiUrl: http://chango-private-1.chango.private:80
+  schema: logs_db
+  table: logs
+  batchSize: 10000
+  interval: 1000
+
+logs:
+  - path: /export/chango-private-admin-logs
+    file: admin*.log
+
+task:
+  log:
+    interval: 20000
+    threads: 3
+
+rocksdb:
+  directory: /tmp/rocksdb
