@@ -368,34 +368,34 @@ public class LogReader implements InitializingBean {
                         String log = strLine;
                         LOG.info("log: {}", log);
 
-//                        // send logs.
-//
-//                        Map<String, Object> map = new HashMap<>();
-//                        map.put("year", year);
-//                        map.put("month", month);
-//                        map.put("day", day);
-//                        map.put("ts", ts);
-//                        map.put("readableTs", readableTs);
-//                        map.put("message", log);
-//                        map.put("lineNumber", lineCount);
-//                        map.put("fileName", fileName);
-//                        map.put("filePath", filePath);
-//                        map.put("hostName", hostName);
-//                        map.put("hostAddress", hostAddress);
-//
-//                        String json = JsonUtils.toJson(map);
-//
-//                        try {
-//                            // send json.
-//                            changoClient.add(json);
-//                        } catch (Exception e) {
-//                            LOG.error(e.getMessage());
-//
-//                            // reconstruct chango client.
-//                            constructChangoClient();
-//                            LOG.info("Chango client reconstructed.");
-//                            Thread.sleep(1000);
-//                        }
+                        // send logs.
+
+                        Map<String, Object> map = new HashMap<>();
+                        map.put("year", year);
+                        map.put("month", month);
+                        map.put("day", day);
+                        map.put("ts", ts);
+                        map.put("readableTs", readableTs);
+                        map.put("message", log);
+                        map.put("lineNumber", lineCount);
+                        map.put("fileName", fileName);
+                        map.put("filePath", filePath);
+                        map.put("hostName", hostName);
+                        map.put("hostAddress", hostAddress);
+
+                        String json = JsonUtils.toJson(map);
+
+                        try {
+                            // send json.
+                            changoClient.add(json);
+                        } catch (Exception e) {
+                            LOG.error(e.getMessage());
+
+                            // reconstruct chango client.
+                            constructChangoClient();
+                            LOG.info("Chango client reconstructed.");
+                            Thread.sleep(1000);
+                        }
                     }
                 }
                 fileInputStream.close();
