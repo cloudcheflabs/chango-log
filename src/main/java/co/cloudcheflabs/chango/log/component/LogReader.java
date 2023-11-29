@@ -21,6 +21,8 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -42,6 +44,12 @@ public class LogReader implements InitializingBean {
     private String table;
     private int batchSize;
     private long interval;
+
+    private long logInterval;
+    private int logThreads;
+
+    private LinkedBlockingQueue<String> queue = new LinkedBlockingQueue<>();
+    private AtomicReference<Throwable> ex = new AtomicReference<>();
 
     @Override
     public void afterPropertiesSet() throws Exception {
@@ -84,8 +92,6 @@ public class LogReader implements InitializingBean {
 
         LOG.info("Log paths loaded: {}", JsonUtils.toJson(logPathMap));
 
-        // construct chango client.
-
         token = configuration.getProperty("chango.token");
         dataApiUrl = configuration.getProperty("chango.dataApiUrl");
         schema = configuration.getProperty("chango.schema");
@@ -93,7 +99,8 @@ public class LogReader implements InitializingBean {
         batchSize = Integer.valueOf(configuration.getProperty("chango.batchSize"));
         interval = Long.valueOf(configuration.getProperty("chango.interval"));
 
-        LOG.info("Chango client constructed.");
+        logInterval = Long.valueOf(configuration.getProperty("task.log.interval"));
+        logThreads = Integer.valueOf(configuration.getProperty("task.log.threads"));
 
         // read logs and send them to data api.
         readLogs();
@@ -101,31 +108,37 @@ public class LogReader implements InitializingBean {
 
     private void readLogs() {
 
-        ExecutorService executor = Executors.newFixedThreadPool(3);
+        ExecutorService executor = Executors.newFixedThreadPool(logThreads);
 
-        Timer timer = new Timer("Chango Private Metrics Timer");
-        long intervalInMillis = 1000 * 10;
+        Timer timer = new Timer("Reading Log Timer");
         timer.schedule(
-                new ReadLogTask(
-                        executor,
-                        logPathMap,
-                        logFileService,
-                        token,
-                        dataApiUrl,
-                        schema,
-                        table,
-                        batchSize,
-                        interval
-                ),
+                new ReadLogTask(queue),
                 5000,
-                intervalInMillis
+                logInterval
         );
 
+        Thread readLogThread = new Thread(new ReadLogRunnable(
+                queue,
+                executor,
+                logPathMap,
+                logFileService,
+                token,
+                dataApiUrl,
+                schema,
+                table,
+                batchSize,
+                interval
+        ));
 
+        readLogThread.setUncaughtExceptionHandler((Thread t, Throwable e) -> {
+            ex.set(e);
+        });
+        readLogThread.start();
     }
 
-    private static class ReadLogTask extends TimerTask {
+    private static class ReadLogRunnable implements Runnable {
 
+        private LinkedBlockingQueue<String> queue;
         private ExecutorService executor;
         private ChangoClient changoClient;
         private Map<String, LogPath> logPathMap;
@@ -136,8 +149,10 @@ public class LogReader implements InitializingBean {
         private String table;
         private int batchSize;
         private long interval;
+        private Map<String, Future<String>> futureMap = new HashMap<>();
 
-        public ReadLogTask(
+        public ReadLogRunnable(
+                LinkedBlockingQueue<String> queue,
                 ExecutorService executor,
                 Map<String, LogPath> logPathMap,
                 LogFileService logFileService,
@@ -148,6 +163,7 @@ public class LogReader implements InitializingBean {
                 int batchSize,
                 long interval
         ) {
+            this.queue = queue;
             this.executor = executor;
             this.logPathMap = logPathMap;
             this.logFileService = logFileService;
@@ -159,6 +175,27 @@ public class LogReader implements InitializingBean {
             this.interval = interval;
 
             constructChangoClient();
+
+            // check if task of reading logs is finished.
+            checkIfTaskFinished();
+        }
+
+        private void checkIfTaskFinished() {
+            Thread t = new Thread(() -> {
+                while (true) {
+                    for(String key : futureMap.keySet()) {
+                        Future<String> task = futureMap.get(key);
+                        // if task is done, remove task from map.
+                        if(task.isDone()) {
+                            futureMap.remove(key);
+                            LOG.info("Reading log file {} finished.", key);
+                        }
+                    }
+
+                    pause(1000);
+                }
+            });
+            t.start();
         }
 
         private void constructChangoClient() {
@@ -174,6 +211,21 @@ public class LogReader implements InitializingBean {
 
         @Override
         public void run() {
+            while (true) {
+                String event = null;
+                if(!queue.isEmpty()) {
+                    event = queue.remove();
+                }
+                if(event != null) {
+                    // read logs.
+                    doReadLogs();
+                } else {
+                    pause(1000);
+                }
+            }
+        }
+
+        private void doReadLogs() {
             for(LogPath logPath : logPathMap.values()) {
                 String path = logPath.getPath();
                 String filePattern = logPath.getFile();
@@ -183,6 +235,8 @@ public class LogReader implements InitializingBean {
                 if(filePattern == null) {
                     filteredFiles.addAll(files);
                 } else {
+                    // filter files with file pattern.
+
                     String[] patternToken = filePattern.split("\\*");
                     filePattern = "\\b" + patternToken[0] + "\\b" + ".*" + "\\b" + patternToken[1] + "\\b";
 
@@ -199,6 +253,16 @@ public class LogReader implements InitializingBean {
                 LOG.info("Selected log files: {}", JsonUtils.toJson(filteredFiles));
 
                 for(File f : filteredFiles) {
+
+                    // check if log file is being read.
+                    String filePath = f.getAbsolutePath();
+                    if(futureMap.containsKey(filePath)) {
+                        if(!futureMap.get(filePath).isDone()) {
+                            LOG.info("Skip reading log file {} which is being read now.", filePath);
+                            continue;
+                        }
+                    }
+
                     Future<String> future = executor.submit(() -> {
                         // read log file.
                         String fileName = f.getName();
@@ -242,10 +306,10 @@ public class LogReader implements InitializingBean {
 
                         return "Reading log file " + f.getAbsolutePath() + " done.";
                     });
+                    futureMap.put(f.getAbsolutePath(), future);
                 }
             }
         }
-
         private long sendLogsAt(File f, long lastReadLineCount) {
             long lineCount = 0;
             try{
@@ -273,35 +337,36 @@ public class LogReader implements InitializingBean {
                         String hostAddress = local.getHostAddress();
 
                         String log = strLine;
+                        LOG.info("log: {}" + log);
 
-                        // send logs.
-
-                        Map<String, Object> map = new HashMap<>();
-                        map.put("year", year);
-                        map.put("month", month);
-                        map.put("day", day);
-                        map.put("ts", ts);
-                        map.put("readableTs", readableTs);
-                        map.put("message", log);
-                        map.put("lineNumber", lineCount);
-                        map.put("fileName", fileName);
-                        map.put("filePath", filePath);
-                        map.put("hostName", hostName);
-                        map.put("hostAddress", hostAddress);
-
-                        String json = JsonUtils.toJson(map);
-
-                        try {
-                            // send json.
-                            changoClient.add(json);
-                        } catch (Exception e) {
-                            LOG.error(e.getMessage());
-
-                            // reconstruct chango client.
-                            constructChangoClient();
-                            LOG.info("Chango client reconstructed.");
-                            Thread.sleep(1000);
-                        }
+//                        // send logs.
+//
+//                        Map<String, Object> map = new HashMap<>();
+//                        map.put("year", year);
+//                        map.put("month", month);
+//                        map.put("day", day);
+//                        map.put("ts", ts);
+//                        map.put("readableTs", readableTs);
+//                        map.put("message", log);
+//                        map.put("lineNumber", lineCount);
+//                        map.put("fileName", fileName);
+//                        map.put("filePath", filePath);
+//                        map.put("hostName", hostName);
+//                        map.put("hostAddress", hostAddress);
+//
+//                        String json = JsonUtils.toJson(map);
+//
+//                        try {
+//                            // send json.
+//                            changoClient.add(json);
+//                        } catch (Exception e) {
+//                            LOG.error(e.getMessage());
+//
+//                            // reconstruct chango client.
+//                            constructChangoClient();
+//                            LOG.info("Chango client reconstructed.");
+//                            Thread.sleep(1000);
+//                        }
                     }
                 }
                 fileInputStream.close();
@@ -334,6 +399,30 @@ public class LogReader implements InitializingBean {
             }
 
             return files;
+        }
+
+        private void pause(long pause) {
+            try {
+                Thread.sleep(pause);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private static class ReadLogTask extends TimerTask {
+
+        private LinkedBlockingQueue<String> queue;
+
+        public ReadLogTask(LinkedBlockingQueue<String> queue) {
+            this.queue = queue;
+        }
+
+
+        @Override
+        public void run() {
+            String event = "Read logs at " + DateTime.now().toString();
+            this.queue.add(event);
         }
     }
 }
