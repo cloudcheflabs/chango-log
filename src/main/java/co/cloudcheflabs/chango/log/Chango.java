@@ -37,5 +37,13 @@ public class Chango {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             applicationContext.close();
         }));
+
+        while (true) {
+            try {
+                Thread.sleep(Long.MAX_VALUE);
+            } catch (Exception e) {
+                LOG.error(e.getMessage());
+            }
+        }
     }
 }

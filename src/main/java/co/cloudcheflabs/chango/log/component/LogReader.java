@@ -18,10 +18,7 @@ import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -116,7 +113,9 @@ public class LogReader implements InitializingBean {
                 5000,
                 logInterval
         );
+        LOG.info("Timer for reading log is running.");
 
+        LOG.info("Ready to read logs...");
         Thread readLogThread = new Thread(new ReadLogRunnable(
                 queue,
                 executor,
@@ -127,10 +126,12 @@ public class LogReader implements InitializingBean {
                 schema,
                 table,
                 batchSize,
-                interval
+                interval,
+                logThreads
         ));
 
         readLogThread.setUncaughtExceptionHandler((Thread t, Throwable e) -> {
+            LOG.error(e.getMessage());
             ex.set(e);
         });
         readLogThread.start();
@@ -149,7 +150,9 @@ public class LogReader implements InitializingBean {
         private String table;
         private int batchSize;
         private long interval;
-        private Map<String, Future<String>> futureMap = new HashMap<>();
+
+        private int threads;
+        private Map<String, Future<String>> futureMap = new ConcurrentHashMap<>();
 
         public ReadLogRunnable(
                 LinkedBlockingQueue<String> queue,
@@ -161,7 +164,8 @@ public class LogReader implements InitializingBean {
                 String schema,
                 String table,
                 int batchSize,
-                long interval
+                long interval,
+                int threads
         ) {
             this.queue = queue;
             this.executor = executor;
@@ -173,6 +177,7 @@ public class LogReader implements InitializingBean {
             this.table = table;
             this.batchSize = batchSize;
             this.interval = interval;
+            this.threads = threads;
 
             constructChangoClient();
 
@@ -188,7 +193,7 @@ public class LogReader implements InitializingBean {
                         // if task is done, remove task from map.
                         if(task.isDone()) {
                             futureMap.remove(key);
-                            LOG.info("Reading log file {} finished.", key);
+                            //LOG.info("Reading log file {} finished.", key);
                         }
                     }
 
@@ -218,7 +223,12 @@ public class LogReader implements InitializingBean {
                 }
                 if(event != null) {
                     // read logs.
-                    doReadLogs();
+                    try {
+                        doReadLogs();
+                    } catch (Exception e) {
+                        LOG.error(e.getMessage());
+                        throw new RuntimeException(e);
+                    }
                 } else {
                     pause(1000);
                 }
@@ -226,6 +236,13 @@ public class LogReader implements InitializingBean {
         }
 
         private void doReadLogs() {
+            int currentReadingLogTasks = logPathMap.keySet().size();
+            if(currentReadingLogTasks >= threads) {
+                LOG.info("Skip reading logs because current count of reading log tasks [{}] is greater than or equals to configured thread count [{}].",
+                        currentReadingLogTasks, threads);
+                return;
+            }
+
             for(LogPath logPath : logPathMap.values()) {
                 String path = logPath.getPath();
                 String filePattern = logPath.getFile();
@@ -250,7 +267,7 @@ public class LogReader implements InitializingBean {
                     }
                 }
 
-                LOG.info("Selected log files: {}", JsonUtils.toJson(filteredFiles));
+                //LOG.info("Selected log files: {}", JsonUtils.toJson(filteredFiles));
 
                 for(File f : filteredFiles) {
 
@@ -266,13 +283,13 @@ public class LogReader implements InitializingBean {
                     Future<String> future = executor.submit(() -> {
                         // read log file.
                         String fileName = f.getName();
-                        String absolutePath = f.getAbsolutePath();
                         long lastModified = f.lastModified();
 
-                        LogFile logFile = logFileService.find(absolutePath, LogFile.class);
+                        LogFile logFile = logFileService.find(filePath, LogFile.class);
                         if(logFile != null) {
                             if(lastModified == logFile.getLastModified()) {
-                                return "Log file " + f.getAbsolutePath() + " not modified.";
+                                //LOG.info("Log file {} not modified.", filePath);
+                                return "Log file " + filePath + " not modified.";
                             } else if (lastModified > logFile.getLastModified()) {
                                 long lastReadLineCount = logFile.getReadLineCount();
                                 long newReadLineCount = sendLogsAt(f, lastReadLineCount);
@@ -280,14 +297,14 @@ public class LogReader implements InitializingBean {
                                 // new entity for log file.
                                 LogFile newLogFile = new LogFile(
                                         fileName,
-                                        absolutePath,
+                                        filePath,
                                         lastModified,
                                         newReadLineCount
                                 );
 
                                 // delete previous entity and save new entity.
-                                logFileService.delete(absolutePath);
-                                logFileService.save(absolutePath, newLogFile);
+                                logFileService.delete(filePath);
+                                logFileService.save(filePath, newLogFile);
                             }
                         } else {
                             long newReadLineCount = sendLogsAt(f, 0);
@@ -295,18 +312,19 @@ public class LogReader implements InitializingBean {
                             // new entity for log file.
                             LogFile newLogFile = new LogFile(
                                     fileName,
-                                    absolutePath,
+                                    filePath,
                                     lastModified,
                                     newReadLineCount
                             );
 
                             // save new entity.
-                            logFileService.save(absolutePath, newLogFile);
+                            logFileService.save(filePath, newLogFile);
                         }
 
-                        return "Reading log file " + f.getAbsolutePath() + " done.";
+                        return "Reading log file " + filePath + " done.";
                     });
-                    futureMap.put(f.getAbsolutePath(), future);
+                    futureMap.put(filePath, future);
+                    //LOG.info("Tasks of reading log file {} added.", filePath);
                 }
             }
         }
@@ -337,7 +355,7 @@ public class LogReader implements InitializingBean {
                         String hostAddress = local.getHostAddress();
 
                         String log = strLine;
-                        LOG.info("log: {}" + log);
+                        LOG.info("log: {}", log);
 
 //                        // send logs.
 //

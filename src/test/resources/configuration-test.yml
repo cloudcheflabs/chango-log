@@ -7,11 +7,13 @@ chango:
   interval: 1000
 
 logs:
-  - path: /test-dir-1
-    file: test*.log
-  - path: /test-dir-2
+  - path: /Users/mykidong/temp-logs
     file: admin*.log
-  - path: /test-dir-3
+
+task:
+  log:
+    interval: 20000
+    threads: 3
 
 rocksdb:
   directory: /tmp/rocksdb

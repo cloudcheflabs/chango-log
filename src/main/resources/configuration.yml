@@ -7,11 +7,11 @@ chango:
   interval: 1000
 
 logs:
-  - path: /test-dir-1
-    file: test*.log
-  - path: /test-dir-2
+  - path: /log-dir-1
+    file: rest*.log
+  - path: /log-dir-2
     file: admin*.log
-  - path: /test-dir-3
+  - path: /log-dir-3
 
 task:
   log:
