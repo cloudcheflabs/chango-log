@@ -5,7 +5,7 @@ chango:
   table: logs
   batchSize: 10000
   interval: 1000
-  tx: true
+  tx: false
 
 logs:
   - path: /log-dir-1
