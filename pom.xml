@@ -78,7 +78,7 @@
 		<jackson.version>2.12.0</jackson.version>
 
 		<!-- chango client -->
-		<chango-client.version>2.0.1</chango-client.version>
+		<chango-client.version>2.0.2</chango-client.version>
 
 		<!-- rocksdb -->
 		<rocksdb.version>8.8.1</rocksdb.version>
