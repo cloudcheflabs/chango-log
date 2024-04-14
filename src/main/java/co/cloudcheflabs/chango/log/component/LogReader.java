@@ -41,6 +41,7 @@ public class LogReader implements InitializingBean {
     private String table;
     private int batchSize;
     private long interval;
+    private boolean tx = false;
 
     private long logInterval;
     private int logThreads;
@@ -95,6 +96,11 @@ public class LogReader implements InitializingBean {
         table = configuration.getProperty("chango.table");
         batchSize = Integer.valueOf(configuration.getProperty("chango.batchSize"));
         interval = Long.valueOf(configuration.getProperty("chango.interval"));
+        String txString = configuration.getProperty("chango.tx");
+        if(txString != null) {
+            tx = Boolean.valueOf(txString);
+        }
+
 
         logInterval = Long.valueOf(configuration.getProperty("task.log.interval"));
         logThreads = Integer.valueOf(configuration.getProperty("task.log.threads"));
@@ -127,7 +133,8 @@ public class LogReader implements InitializingBean {
                 table,
                 batchSize,
                 interval,
-                logThreads
+                logThreads,
+                tx
         ));
 
         readLogThread.setUncaughtExceptionHandler((Thread t, Throwable e) -> {
@@ -158,6 +165,7 @@ public class LogReader implements InitializingBean {
         private String table;
         private int batchSize;
         private long interval;
+        private boolean tx;
 
         private int threads;
         private Map<String, Future<String>> futureMap = new ConcurrentHashMap<>();
@@ -173,7 +181,8 @@ public class LogReader implements InitializingBean {
                 String table,
                 int batchSize,
                 long interval,
-                int threads
+                int threads,
+                boolean tx
         ) {
             this.queue = queue;
             this.executor = executor;
@@ -186,6 +195,7 @@ public class LogReader implements InitializingBean {
             this.batchSize = batchSize;
             this.interval = interval;
             this.threads = threads;
+            this.tx = tx;
 
             constructChangoClient();
 
@@ -218,7 +228,8 @@ public class LogReader implements InitializingBean {
                     schema,
                     table,
                     batchSize,
-                    interval
+                    interval,
+                    tx
             );
         }
 
