@@ -363,12 +363,6 @@ public class LogReader implements InitializingBean {
 
                         DateTime dt = DateTime.now();
 
-                        String year = String.valueOf(dt.getYear());
-                        String month = padZero(dt.getMonthOfYear());
-                        String day = padZero(dt.getDayOfMonth());
-                        long ts = dt.getMillis(); // in milliseconds.
-                        String readableTs = new DateTime(ts).toString();
-
                         String fileName = f.getName();
                         String filePath = f.getAbsolutePath();
 
@@ -381,11 +375,7 @@ public class LogReader implements InitializingBean {
                         // send logs.
 
                         Map<String, Object> map = new HashMap<>();
-                        map.put("year", year);
-                        map.put("month", month);
-                        map.put("day", day);
-                        map.put("ts", ts);
-                        map.put("readableTs", readableTs);
+                        map.put("ts", dt.toString());
                         map.put("message", log);
                         map.put("lineNumber", lineCount);
                         map.put("fileName", fileName);
